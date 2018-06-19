@@ -38,9 +38,11 @@ function descriptors = SIFTDescriptor(pyramid, keyPtLoc, keyPtScale)
 %                                                                              %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % gradient image, for gradients in x direction.
-        img_dx = zeros(size(currentImage)); 
+        img_dx = zeros(size(currentImage));
+        img_dx=filter2([-1 0 1],currentImage);
         % gradients in y direction.
         img_dy = zeros(size(currentImage));
+        img_dy=filter2([-1; 0; 1],currentImage);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                              %
@@ -61,6 +63,9 @@ function descriptors = SIFTDescriptor(pyramid, keyPtLoc, keyPtScale)
          % Calculate the magnitude and orientation of the gradient.
         grad_mag{scale} = zeros(size(currentImage));
         grad_theta{scale} = zeros(size(currentImage));
+        grad_mag{scale}=sqrt(img_dx.^2+img_dy.^2);
+        grad_theta{scale}=atan2(img_dy,img_dx);
+        
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                              %
@@ -135,11 +140,9 @@ function descriptors = SIFTDescriptor(pyramid, keyPtLoc, keyPtScale)
 %                                                                              %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Step 1: compute the dominant gradient direction of the patch
-        patch_angle_offset = 0;
-
-        
+        patch_angle_offset = ComputeDominantDirection(patch_mag, patch_theta);
         % Step 2: change patch_theta so it's relative to the dominant direction
-        patch_theta = patch_theta;
+        patch_theta = patch_theta-patch_angle_offset;
 
         
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -185,6 +188,16 @@ function descriptors = SIFTDescriptor(pyramid, keyPtLoc, keyPtScale)
         % concatenate the histogram descriptors to it like this: 
         % feature = [feature, histogram]
         feature = [];
+        subdivided_patch_theta=zeros(pixelsPerHistogram,pixelsPerHistogram);
+        subdivided_patch_mag=zeros(pixelsPerHistogram,pixelsPerHistogram);
+        for y=1:4:13
+            for x=1:4:13
+                subdivided_patch_theta=patch_theta(y:y+3,x:x+3);
+                subdivided_patch_mag=patch_mag(y:y+3,x:x+3);
+                [histogram,angles]=ComputeGradientHistogram(num_angles,subdivided_patch_mag,subdivided_patch_theta);
+                feature=[feature,histogram];
+            end
+        end
         
 
         
@@ -229,7 +242,7 @@ function [histogram, angles] = ComputeGradientHistogram(num_bins, gradient_magni
 %       In other words, histogram(i) contains the sum of the
 %       gradient magnitudes of all points whose gradient directions fall
 %       in the range [angles(i), angles(i + 1))
-
+ 
     angle_step = 2 * pi / num_bins;
     angles = 0 : angle_step : (2*pi-angle_step);
     
@@ -242,7 +255,18 @@ function [histogram, angles] = ComputeGradientHistogram(num_bins, gradient_magni
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     histogram = zeros(1, num_bins);
-
+    [rows,cols]=size(gradient_magnitudes);
+    for m=1:rows
+        for n=1:cols
+            for angle=0:angle_step:(2*pi-angle_step)
+                if(angle<=gradient_angles(m,n)&&gradient_angles(m,n)<angle+angle_step)
+                    histogram(round(angle/angle_step)+1)=histogram(round(angle/angle_step)+1)+gradient_magnitudes(m,n);
+                    break;
+                end
+            end
+        end
+        
+    end
     
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -277,13 +301,15 @@ function direction = ComputeDominantDirection(gradient_magnitudes, gradient_angl
     num_bins = 36;
     % Step 1:
     % compute the 36-bin histogram of angles using ComputeGradientHistogram()
-    
+    [histogram, angles] = ComputeGradientHistogram(num_bins, gradient_magnitudes, gradient_angles);
     % Step 2:
     % Find the maximum value of the gradient histogram, and set "direction"
     % to the angle corresponding to the maximum. (To match our solutions,
     % just use the lower-bound angle of the max histogram bin. (E.g. return
     % 0 radians if it's bin 1.)
-    
+        peak=max(histogram);
+        loc=find(histogram==peak);
+        direction =2*pi*(loc(1)-1)/num_bins;
     
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

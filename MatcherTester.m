@@ -7,18 +7,20 @@ img1 = imread('./data/uttower2.jpg');
 img2 = imread('./data/uttower1.jpg');
 
 %% Feature detection
-[feature1, pyr1, imp1] = detect_features(img1);
-pt1disp = feature1(:,1:2);
-pt1 = feature1(:, 8:9);
-desc1 = SIFTDescriptor(imp1, pt1, feature1(:,3));
+[feature1, pyr1, imp1] = detect_features_DoG(img1,1.5,1);
+% [feature1, pyr1, imp1] = detect_features_DoG(img1, 1.5, true, 3, 4, 4, 4, 0.04, 5);
 
-[feature2, pyr2, imp2] = detect_features(img2);
-pt2disp = feature2(:,1:2);
-pt2 = feature2(:, 8:9);
-desc2 = SIFTDescriptor(imp2, pt2, feature2(:,3));
+% pt1disp = feature1(:,1:2);
+% pt1 = feature1(:, 8:9);
+% desc1 = SIFTDescriptor(imp1, pt1, feature1(:,3));
 
-%% Test Matcher
-M = SIFTSimpleMatcher(desc1, desc2);
+% [feature2, pyr2, imp2] = detect_features(img2);
+% pt2disp = feature2(:,1:2);
+% pt2 = feature2(:, 8:9);
+% desc2 = SIFTDescriptor(imp2, pt2, feature2(:,3));
 
-%% Visualize match
-PlotMatch(im2double(img1), im2double(img2), pt1disp', pt2disp', M');
+% %% Test Matcher
+% M = SIFTSimpleMatcher(desc1, desc2);
+
+% %% Visualize match
+% PlotMatch(im2double(img1), im2double(img2), pt1disp', pt2disp', M');
