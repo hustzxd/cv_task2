@@ -27,7 +27,7 @@ minInliersForAcceptance = ceil(0.3 * size(M, 1));
 H = RANSACFit(pointsInImage1, pointsInImage2, M, maxIter, seedSetSize, maxInlierErrorPixels, minInliersForAcceptance);
 
 %% Make Panoramic image
-saveFileName = 'uttower_pano.jpg';
+saveFileName = './results/uttower_pano.jpg';
 PairStitch(img1, img2, H, saveFileName);
 disp(['Panorama was saved as uttower_pano.jpg' saveFileName]);
 imshow(imread(saveFileName));
